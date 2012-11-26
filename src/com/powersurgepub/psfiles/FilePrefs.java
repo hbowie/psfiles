@@ -510,8 +510,11 @@ public class FilePrefs
     }
     backupFileName.append (" backup ");
     backupFileName.append (backupDateFormatter.format (new Date()));
-    if (ext.length() > 0
-        && ext.charAt(0) == '.') {
+    if (ext.length() == 0) {
+      // no extension
+    }
+    else
+    if (ext.charAt(0) == '.') {
       backupFileName.append(ext);
     } else {
       backupFileName.append (".");
