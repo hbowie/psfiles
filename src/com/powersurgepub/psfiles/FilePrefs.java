@@ -509,7 +509,7 @@ public class FilePrefs
       i++;
     }
     backupFileName.append (" backup ");
-    backupFileName.append (backupDateFormatter.format (new Date()));
+    backupFileName.append (getBackupDate());
     if (ext.length() == 0) {
       // no extension
     }
@@ -521,6 +521,10 @@ public class FilePrefs
       backupFileName.append(ext);
     }
     return backupFileName.toString();
+  }
+  
+  public String getBackupDate() {
+    return backupDateFormatter.format (new Date());
   }
   
   public void saveLastBackupDate(
