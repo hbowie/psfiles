@@ -413,6 +413,7 @@ public class FilePrefs
       String prefsQualifier, 
       int recentFileNumber) {
     
+    // System.out.println ("FilePrefs.handleClose for " + fileSpec.getPath());
     boolean backedUp = false;
     
     if (fileSpec != null
@@ -430,20 +431,25 @@ public class FilePrefs
         Calendar today =  Calendar.getInstance();
         today.setTime(new Date());
         String lastBackupDateString = fileSpec.getLastBackupDateAsString();
+        // System.out.println ("  lastBackupDateString = " + lastBackupDateString);
         if (lastBackupDateString.equals(NO_DATE)
             || lastBackupDateString.length() == 0) {
           daysBetween = daysBetweenBackups;
         } else {
           try {
-            Date lastBackupDate = dateFormat.parse(lastBackupDateString);
+            DateFormat formatter = DateFormat.getDateTimeInstance();
+            Date lastBackupDate = formatter.parse(lastBackupDateString);
             Calendar last = Calendar.getInstance();
             last.setTime(lastBackupDate);
             daysBetween = 0;
             while (last.before(today)) {  
               last.add(Calendar.DAY_OF_MONTH, 1);  
               daysBetween++;  
+              // System.out.println ("    Adding another day to daysBetween - now set to " 
+              //     + String.valueOf(daysBetween));
             } 
           } catch (ParseException e) {
+            System.out.println ("  Parse Exception " + e.toString());
             daysBetween = daysBetweenBackups;
           } 
         }
