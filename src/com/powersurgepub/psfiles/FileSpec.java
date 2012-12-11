@@ -125,7 +125,7 @@ public class FileSpec {
                            accessed.
    */
   public void saveToRecentPrefs (String prefsQualifier, int recentFileNumber) {
-
+    
     // Apend the file number to the keys
     String keySuffix = String.valueOf(recentFileNumber);
 
@@ -206,6 +206,16 @@ public class FileSpec {
       str.append(data);
       str.append(DELIMITER);
     }
+  }
+  
+  /**
+   Capture info from an older file spec entry before deleting it. 
+  
+   @param file2 The older file spec from which we are capturing data. 
+  */
+  public void merge(FileSpec file2) {
+    setLastBackupDate(file2.getLastBackupDate());
+    setBackupFolder(file2.getBackupFolder());
   }
   
   public void setFile (File file) {

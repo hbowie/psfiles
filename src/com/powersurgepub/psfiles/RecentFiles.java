@@ -234,8 +234,8 @@ public class RecentFiles {
   /**
    Add a file that's been recently used.
 
-   @param type A string indicating the type of file or data store.
-   @param path The path of the file or data store.
+   @param type   A string indicating the type of file or data store.
+   @param path   The path of the file or data store.
    @param format The format of the data within the data store. 
    */
   public FileSpec addRecentFile (FileSpec recentFile) {
@@ -248,8 +248,13 @@ public class RecentFiles {
       filePrefs.addRecentFileAtTop(recentFile);
     }
     for (int i = 1; i < files.size(); i++) {
-      if (get(i).getPath().equals(recentFile.getPath())
-          || i >= recentFilesMax) {
+      if (get(i).getPath().equals(recentFile.getPath())) {
+        recentFile.merge(get(i));
+        removeFile (i);
+        i--;
+      }
+      else
+      if (i >= recentFilesMax) {
         removeFile (i);
         i--;
       } // end if we found a file to remove
