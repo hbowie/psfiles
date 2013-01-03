@@ -14,12 +14,17 @@ public class FileSpec {
   
   public static final String EQUALS = "=";
   public static final String DELIMITER = ";";
-  public static final String PATH = "path";
-  public static final String TYPE = "type";
-  public static final String FORMAT = "format";
-  public static final String LAST_ACCESS = "last-access";
-  public static final String LAST_BACKUP = "last-backup";
-  public static final String BACKUP_FOLDER = "backup-folder";
+  
+  public static final String PATH             = "path";
+  public static final String TYPE             = "type";
+  public static final String FORMAT           = "format";
+  public static final String LAST_ACCESS      = "last-access";
+  public static final String LAST_BACKUP      = "last-backup";
+  public static final String BACKUP_FOLDER    = "backup-folder";
+  public static final String TEMPLATES_FOLDER = "templates-folder";
+  public static final String SCRIPTS_FOLDER   = "scripts-folder";
+  public static final String AUTOPLAY         = "autoplay";
+  public static final String EASYPLAY         = "easyplay";
 
   public static final String RECENT_FILE            = "recent-file";
   public static final String RECENT_FILE_TYPE       = "recent-file-type";
@@ -38,12 +43,16 @@ public class FileSpec {
   private             Date   lastAccessDate   = new Date();
   private             Date   lastBackupDate   = new Date();
   private             String backupFolder = "";
+  private             String templatesFolder = "";
+  private             String scriptsFolder = "";
+  private             String autoplay = "";
+  private             String easyplay = "";
 
   /**
    Construct a FileSpec without any data.
    */
   public FileSpec () {
-
+ 
   }
 
   /**
@@ -135,6 +144,15 @@ public class FileSpec {
     prefs.setPref(prefsQualifier + RECENT_FILE + "-" + keySuffix, getFileInfo());
   }
   
+  /**
+   Set the various File Spec variables based on the info encoded in the passed
+   string.
+  
+   @param fileInfo A string containing encoded file spec attributes, with each
+                   attribute separated by a semi-colon, and each attribute 
+                   consisting of a key-value pair, using an equals sign as 
+                   a separator.
+  */
   public void setFileInfo(String fileInfo) {
     int i = 0;
     int equalsIndex;
@@ -186,6 +204,22 @@ public class FileSpec {
     if (name.equalsIgnoreCase(BACKUP_FOLDER)) {
       setBackupFolder (data);
     }
+    else
+    if (name.equalsIgnoreCase(TEMPLATES_FOLDER)) {
+      setTemplatesFolder (data);
+    }
+    else
+    if (name.equalsIgnoreCase(SCRIPTS_FOLDER)) {
+      setScriptsFolder (data);
+    }
+    else
+    if (name.equalsIgnoreCase(EASYPLAY)) {
+      setEasyPlay (data);
+    }
+    else
+    if (name.equalsIgnoreCase(AUTOPLAY)) {
+      setAutoPlay (data);
+    }
   }
   
   public String getFileInfo() {
@@ -196,6 +230,10 @@ public class FileSpec {
     addAttribute(str, LAST_ACCESS, getLastAccessDateAsString());
     addAttribute(str, LAST_BACKUP, getLastBackupDateAsString());
     addAttribute(str, BACKUP_FOLDER, getBackupFolder());
+    addAttribute(str, TEMPLATES_FOLDER, getTemplatesFolder());
+    addAttribute(str, SCRIPTS_FOLDER, getScriptsFolder());
+    addAttribute(str, AUTOPLAY, getAutoPlay());
+    addAttribute(str, EASYPLAY, getEasyPlay());
     return str.toString();
   }
   
@@ -216,6 +254,10 @@ public class FileSpec {
   public void merge(FileSpec file2) {
     setLastBackupDate(file2.getLastBackupDate());
     setBackupFolder(file2.getBackupFolder());
+    setScriptsFolder(file2.getScriptsFolder());
+    setTemplatesFolder(file2.getTemplatesFolder());
+    setAutoPlay(file2.getAutoPlay());
+    setEasyPlay(file2.getEasyPlay());
   }
   
   public void setFile (File file) {
@@ -237,6 +279,12 @@ public class FileSpec {
     return file;
   }
   
+  /**
+   If the file spec identifies a file, return its parent folder; 
+   if the file spec identifies a folder, then return that. 
+  
+   @return A folder (aka directory).  
+  */
   public File getFolder() {
     if (file == null) {
       return null;
@@ -505,6 +553,60 @@ public class FileSpec {
   
   public String getBackupFolder () {
     return backupFolder;
+  }
+  
+  public void setTemplatesFolder (File templatesFolder) {
+    if (templatesFolder.isFile()) {
+      templatesFolder = templatesFolder.getParentFile();
+    }
+    try {
+      this.templatesFolder = templatesFolder.getCanonicalPath();
+    } catch (java.io.IOException e) {
+      this.templatesFolder = templatesFolder.getAbsolutePath();
+    }
+  }
+  
+  public void setTemplatesFolder (String templatesFolder) {
+    this.templatesFolder = templatesFolder;
+  }
+  
+  public String getTemplatesFolder () {
+    return templatesFolder;
+  }
+  
+  public void setScriptsFolder (File scriptsFolder) {
+    if (scriptsFolder.isFile()) {
+      scriptsFolder = scriptsFolder.getParentFile();
+    }
+    try {
+      this.scriptsFolder = scriptsFolder.getCanonicalPath();
+    } catch (java.io.IOException e) {
+      this.scriptsFolder = scriptsFolder.getAbsolutePath();
+    }
+  }
+  
+  public void setScriptsFolder (String scriptsFolder) {
+    this.scriptsFolder = scriptsFolder;
+  }
+  
+  public String getScriptsFolder () {
+    return scriptsFolder;
+  }
+  
+  public void setAutoPlay (String autoplay) {
+    this.autoplay = autoplay;
+  }
+  
+  public String getAutoPlay () {
+    return autoplay;
+  }
+  
+  public void setEasyPlay (String easyplay) {
+    this.easyplay = easyplay;
+  }
+  
+  public String getEasyPlay () {
+    return easyplay;
   }
   
   public String toString() {
