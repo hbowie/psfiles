@@ -23,7 +23,6 @@ public class FileSpec {
   public static final String BACKUP_FOLDER    = "backup-folder";
   public static final String TEMPLATES_FOLDER = "templates-folder";
   public static final String SCRIPTS_FOLDER   = "scripts-folder";
-  public static final String AUTOPLAY         = "autoplay";
   public static final String EASYPLAY         = "easyplay";
 
   public static final String RECENT_FILE            = "recent-file";
@@ -45,7 +44,6 @@ public class FileSpec {
   private             String backupFolder = "";
   private             String templatesFolder = "";
   private             String scriptsFolder = "";
-  private             String autoplay = "";
   private             String easyplay = "";
 
   /**
@@ -216,10 +214,6 @@ public class FileSpec {
     if (name.equalsIgnoreCase(EASYPLAY)) {
       setEasyPlay (data);
     }
-    else
-    if (name.equalsIgnoreCase(AUTOPLAY)) {
-      setAutoPlay (data);
-    }
   }
   
   public String getFileInfo() {
@@ -232,7 +226,6 @@ public class FileSpec {
     addAttribute(str, BACKUP_FOLDER, getBackupFolder());
     addAttribute(str, TEMPLATES_FOLDER, getTemplatesFolder());
     addAttribute(str, SCRIPTS_FOLDER, getScriptsFolder());
-    addAttribute(str, AUTOPLAY, getAutoPlay());
     addAttribute(str, EASYPLAY, getEasyPlay());
     return str.toString();
   }
@@ -256,7 +249,6 @@ public class FileSpec {
     setBackupFolder(file2.getBackupFolder());
     setScriptsFolder(file2.getScriptsFolder());
     setTemplatesFolder(file2.getTemplatesFolder());
-    setAutoPlay(file2.getAutoPlay());
     setEasyPlay(file2.getEasyPlay());
   }
   
@@ -591,14 +583,6 @@ public class FileSpec {
   
   public String getScriptsFolder () {
     return scriptsFolder;
-  }
-  
-  public void setAutoPlay (String autoplay) {
-    this.autoplay = autoplay;
-  }
-  
-  public String getAutoPlay () {
-    return autoplay;
   }
   
   public void setEasyPlay (String easyplay) {
