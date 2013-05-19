@@ -278,6 +278,38 @@ public class RecentFiles {
     savePrefs();
     return get(0);
   } // end method addRecentFile
+      
+  /**
+   Add a file that should be near the top, but not replace the file
+   currently at the top of the list. 
+
+   @param notSoRecentFile   The file to be added. 
+   */
+  public FileSpec addNotSoRecentFile (FileSpec notSoRecentFile) {
+
+ 
+    files.add (1, notSoRecentFile);
+    if (recentFilesMenu != null) {
+      recentFilesMenu.insert (createMenuItem(notSoRecentFile), 1);
+    }
+    if (filePrefs != null) {
+      filePrefs.addNotSoRecentFile(notSoRecentFile);
+    }
+    for (int i = 1; i < files.size(); i++) {
+      if (get(i).getPath().equals(notSoRecentFile.getPath())) {
+        notSoRecentFile.merge(get(i));
+        removeFile (i);
+        i--;
+      }
+      else
+      if (i >= recentFilesMax) {
+        removeFile (i);
+        i--;
+      } // end if we found a file to remove
+    } // end for each file in list
+    savePrefs();
+    return get(0);
+  } // end method addRecentFile
   
   private void removeFile (int i) {
    

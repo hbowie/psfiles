@@ -198,6 +198,16 @@ public class FilePrefs
 
   }
   
+  public void addNotSoRecentFile (FileSpec notSoRecentFile) {
+    
+    startupComboBox.insertItemAt
+        (notSoRecentFile.getBriefDisplayName(), STARTUP_COMBO_BOX_LITERALS + 1);
+    if (notSoRecentFile.getPath().equalsIgnoreCase(specificFileAtStartup)) {
+      startupComboBox.setSelectedIndex(STARTUP_COMBO_BOX_LITERALS + 1);
+    }
+    
+  }
+  
   public void removeRecentFile (int i) {
 
     if (startupComboBox.getItemCount() > (i + STARTUP_COMBO_BOX_LITERALS)) {
