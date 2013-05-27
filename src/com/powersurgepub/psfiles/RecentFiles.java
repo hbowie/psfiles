@@ -226,6 +226,13 @@ public class RecentFiles {
     }
   }
 
+  /**
+   Add a file that's been recently used. 
+  
+   @param file The file that's been recently used. 
+  
+   @return The file spec for the file. 
+  */
   public FileSpec addRecentFile (File file) {
     return addRecentFile ("file", file.getAbsolutePath(), "");
   }
