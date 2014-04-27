@@ -38,12 +38,16 @@ public class FilePrefs
   public static final String LAST_BACKUP_DATE             = "last-backup-date";
   public static final String NO_DATE                      = "no-date";
   
+  public static final String RECENT_FILES_MAX             = "recent-files-max";
+  
   public static final String LAUNCH_AT_STARTUP            = "launch-at-startup";
   public static final String NO_FILE                      = "no-file";
   public static final int    NO_FILE_INDEX                = 0;
   public static final String LAST_FILE_OPENED             = "last-file-opened";
   public static final int    LAST_FILE_OPENED_INDEX       = 1;
   public static final int    STARTUP_COMBO_BOX_LITERALS   = 2;
+  
+  public static final int    RECENT_FILES_MAX_DEFAULT     = 5;
   
   public static final String PURGE_INACCESSIBLE_FILES     = "purge-inaccessible-files";
   public static final String NEVER                        = "never";
@@ -60,7 +64,6 @@ public class FilePrefs
   private DateFormat  backupDateFormatter 
       = new SimpleDateFormat ("yyyy-MM-dd-HH-mm");
   
-  private             int     recentFilesMax              = 5;
   private             boolean recentFilesMaxUpdateInProgress = false;
   
   private SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
@@ -129,6 +132,16 @@ public class FilePrefs
       occasionalBackupsButton.setSelected(true);
     }
     
+    // Load number of recent files
+    int recentMax = UserPrefs.getShared().getPrefAsInt
+        (RECENT_FILES_MAX, RECENT_FILES_MAX_DEFAULT);
+    recentFilesMaxTextField.setText
+        (String.valueOf(recentMax));
+    recentFilesMaxSlider.setValue(recentMax);
+    if (recentFiles != null) {
+      recentFiles.setRecentFilesMax(recentMax);
+    }
+    
     // Load launch at startup preferences
     String launchAtStartup = UserPrefs.getShared().getPref 
         (LAUNCH_AT_STARTUP, LAST_FILE_OPENED);
@@ -173,10 +186,10 @@ public class FilePrefs
   */
   public void setRecentFiles (RecentFiles recentFiles) {
     this.recentFiles = recentFiles;
-    recentFiles.setFilePrefs(this);
-    recentFilesMaxTextField.setText
-        (String.valueOf(recentFiles.getRecentFilesMax()));
-    recentFilesMaxSlider.setValue(recentFiles.getRecentFilesMax());
+    if (recentFiles != null) {
+      recentFiles.setFilePrefs(this);
+      recentFiles.setRecentFilesMax(recentFilesMaxSlider.getValue());
+    }
   }
   
   public void addRecentFileAtEnd (FileSpec recentFile) {
@@ -233,26 +246,19 @@ public class FilePrefs
   
    @return The resulting value after the update (if any). 
   */
-  public int setRecentFilesMax (int recentFilesMax) {
-    if (this.recentFilesMax != recentFilesMax
-        && recentFilesMax >= 1
+  private void setRecentFilesMax (int recentFilesMax) {
+    if (recentFilesMax >= 1
         && recentFilesMax <= recentFilesMaxSlider.getMaximum()) {
-      this.recentFilesMax = recentFilesMax;
       if (recentFiles != null) {
-        if (recentFiles.getRecentFilesMax() != recentFilesMax) {
-          recentFiles.setRecentFilesMax(recentFilesMax);
-        }
+        recentFiles.setRecentFilesMax(recentFilesMax);
       }
-      
       if (recentFilesMax != getRecentFilesMaxFromText()) {
         recentFilesMaxTextField.setText(String.valueOf(recentFilesMax));
       }
-      
       if (recentFilesMax != recentFilesMaxSlider.getValue()) {
         recentFilesMaxSlider.setValue(recentFilesMax);
       }
     }
-    return this.recentFilesMax;
   }
   
   /**
@@ -368,6 +374,9 @@ public class FilePrefs
     } else {
       UserPrefs.getShared().setPref(BACKUP_FREQUENCY, OCCASIONAL_BACKUPS);
     }
+    // Save recent files max
+    UserPrefs.getShared().setPref
+        (RECENT_FILES_MAX, recentFilesMaxSlider.getValue());
     
     // Save startup file launch prefs
     if (startupComboBox.getSelectedIndex() == NO_FILE_INDEX) {
@@ -439,7 +448,6 @@ public class FilePrefs
       String prefsQualifier, 
       int recentFileNumber) {
     
-    // System.out.println ("FilePrefs.handleClose for " + fileSpec.getPath());
     boolean backedUp = false;
     
     if (fileSpec != null
@@ -457,7 +465,6 @@ public class FilePrefs
         Calendar today =  Calendar.getInstance();
         today.setTime(new Date());
         String lastBackupDateString = fileSpec.getLastBackupDateAsString();
-        // System.out.println ("  lastBackupDateString = " + lastBackupDateString);
         if (lastBackupDateString.equals(NO_DATE)
             || lastBackupDateString.length() == 0) {
           daysBetween = daysBetweenBackups;
@@ -471,8 +478,6 @@ public class FilePrefs
             while (last.before(today)) {  
               last.add(Calendar.DAY_OF_MONTH, 1);  
               daysBetween++;  
-              // System.out.println ("    Adding another day to daysBetween - now set to " 
-              //     + String.valueOf(daysBetween));
             } 
           } catch (ParseException e) {
             System.out.println ("  Parse Exception " + e.toString());
@@ -574,15 +579,13 @@ public class FilePrefs
       msgToUser.setText(" ");    
       int recentFilesMaxText = getRecentFilesMaxFromText();
       if (recentFilesMaxText >= 0) {
-        if (recentFilesMaxText != recentFilesMax) {
-          if (recentFilesMaxText >= 1
-              && recentFilesMaxText <= recentFilesMaxSlider.getMaximum()) {
-            setRecentFilesMax(recentFilesMaxText);
-          } else {
-            recentFilesMaxTextField.setText
-                (String.valueOf(recentFilesMaxSlider.getValue()));
-            msgToUser.setText("Number of Recent Files cannot be outside of slider range");
-          }
+        if (recentFilesMaxText >= 1
+            && recentFilesMaxText <= recentFilesMaxSlider.getMaximum()) {
+          setRecentFilesMax(recentFilesMaxText);
+        } else {
+          recentFilesMaxTextField.setText
+              (String.valueOf(recentFilesMaxSlider.getValue()));
+          msgToUser.setText("Number of Recent Files cannot be outside of slider range");
         }
       } else {
         recentFilesMaxTextField.setText
@@ -595,9 +598,7 @@ public class FilePrefs
   
   private void updateRecentFilesMax(int recentFilesMax) {
     if (recentFiles != null) {
-      if (recentFilesMax != recentFiles.getRecentFilesMax()) {
-          recentFiles.setRecentFilesMax(recentFilesMax);
-      }
+      recentFiles.setRecentFilesMax(recentFilesMax);
     }
   }
 
@@ -836,7 +837,7 @@ private void automaticBackupsButtonActionPerformed(java.awt.event.ActionEvent ev
       }
       recentFilesMaxTextField.setText(String.valueOf(recentFilesMaxSliderValue));
       if (! recentFilesMaxSlider.getValueIsAdjusting()) {
-        updateRecentFilesMax(recentFilesMax);
+        updateRecentFilesMax(recentFilesMaxSliderValue);
       }
       recentFilesMaxUpdateInProgress = false;
     }
