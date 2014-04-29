@@ -70,11 +70,10 @@ package com.powersurgepub.psfiles;
  */
 public class RecentFiles {
 
-  public static final String          RECENT_FILES_MAX = "recent-files-max";
-
   private         String              prefsQualifier          = "";
   
-  private         int                 recentFilesMax          = 5;
+  private         int                 recentFilesMax          
+                                        = FilePrefs.RECENT_FILES_MAX_DEFAULT;
 
   private         ArrayList<FileSpec> files                   = new ArrayList();
 
@@ -131,7 +130,6 @@ public class RecentFiles {
    */
   public void loadFromPrefs () {
     
-    loadRecentFilesMax();
     for (int i = 0; i < recentFilesMax; i++) {
       FileSpec recentFile = new FileSpec();
       recentFile.loadFromRecentPrefs(prefsQualifier, i);
@@ -182,8 +180,6 @@ public class RecentFiles {
    Save the recent files to the user's preferences. 
    */
   public void savePrefs () {
-    
-    saveRecentFilesMax();
     
     int count = 0;
     for (int i = 0; i < files.size(); i++) {
@@ -330,18 +326,6 @@ public class RecentFiles {
   }
 
   /**
-   Get the user's latest preference for the maximum number of recent files
-   to retain.
-   */
-  private void loadRecentFilesMax () {
-    setRecentFilesMax (UserPrefs.getShared().getPrefAsInt (RECENT_FILES_MAX, 5));
-  }
-  
-  private void saveRecentFilesMax () {
-    UserPrefs.getShared().setPref(RECENT_FILES_MAX, getRecentFilesMax());
-  }
-
-  /**
    Set the maximum number of recent files to be retained.
 
    @param recentFilesMax The number of recent files to be retained.
@@ -358,9 +342,9 @@ public class RecentFiles {
    
    @return The number of recent files to be retained.
   */
-  public int getRecentFilesMax () {
-    return recentFilesMax;
-  }
+  // public int getRecentFilesMax () {
+  //   return recentFilesMax;
+  // }
 
   /**
    Register the menu to contain the recent file menu items.
