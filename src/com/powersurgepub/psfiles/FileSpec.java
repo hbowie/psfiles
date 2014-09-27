@@ -40,6 +40,8 @@ public class FileSpec {
   public static final String TEMPLATES_FOLDER = "templates-folder";
   public static final String SCRIPTS_FOLDER   = "scripts-folder";
   public static final String EASYPLAY         = "easyplay";
+  public static final String SYNC             = "sync";
+  public static final String SYNC_PREFIX      = "sync-prefix";
 
   public static final String RECENT_FILE            = "recent-file";
   public static final String RECENT_FILE_TYPE       = "recent-file-type";
@@ -61,6 +63,8 @@ public class FileSpec {
   private             String templatesFolder = "";
   private             String scriptsFolder = "";
   private             String easyplay = "";
+  private             String sync = "";
+  private             String syncPrefix = "";
 
   /**
    Construct a FileSpec without any data.
@@ -230,6 +234,14 @@ public class FileSpec {
     if (name.equalsIgnoreCase(EASYPLAY)) {
       setEasyPlay (data);
     }
+    else
+    if (name.equalsIgnoreCase(SYNC)) {
+      setSync(data);
+    }
+    else
+    if (name.equalsIgnoreCase(SYNC_PREFIX)) {
+      setSyncPrefix(data);
+    }
   }
   
   public String getFileInfo() {
@@ -243,6 +255,8 @@ public class FileSpec {
     addAttribute(str, TEMPLATES_FOLDER, getTemplatesFolder());
     addAttribute(str, SCRIPTS_FOLDER, getScriptsFolder());
     addAttribute(str, EASYPLAY, getEasyPlay());
+    addAttribute(str, SYNC, getSyncAsString());
+    addAttribute(str, SYNC_PREFIX, getSyncPrefix());
     return str.toString();
   }
   
@@ -607,6 +621,36 @@ public class FileSpec {
   
   public String getEasyPlay () {
     return easyplay;
+  }
+  
+  public void setSync(String sync) {
+    this.sync = sync;
+  }
+  
+  public void setSync(boolean sync) {
+    if (sync) {
+      this.sync = "Yes";
+    } else {
+      this.sync = "No";
+    }
+  }
+  
+  public boolean getSync() {
+    return (sync.length() > 0
+        && (sync.toLowerCase().charAt(0) == 'y'
+          || sync.toLowerCase().charAt(0) == 't'));
+  }
+  
+  public String getSyncAsString() {
+    return sync;
+  }
+  
+  public void setSyncPrefix(String syncPrefix) {
+    this.syncPrefix = syncPrefix;
+  }
+  
+  public String getSyncPrefix() {
+    return syncPrefix;
   }
   
   public String toString() {
