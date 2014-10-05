@@ -280,6 +280,8 @@ public class FileSpec {
     setScriptsFolder(file2.getScriptsFolder());
     setTemplatesFolder(file2.getTemplatesFolder());
     setEasyPlay(file2.getEasyPlay());
+    setSyncPrefix(file2.getSyncPrefix());
+    setSync(file2.getSync());
   }
   
   public void setFile (File file) {
@@ -639,6 +641,7 @@ public class FileSpec {
     return (sync.length() > 0
         && (sync.toLowerCase().charAt(0) == 'y'
           || sync.toLowerCase().charAt(0) == 't'));
+    
   }
   
   public String getSyncAsString() {
