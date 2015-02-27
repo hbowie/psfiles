@@ -1,5 +1,5 @@
 /*
- * Copyright 1999 - 2013 Herb Bowie
+ * Copyright 1999 - 2015 Herb Bowie
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,6 +42,7 @@ public class FileSpec {
   public static final String EASYPLAY         = "easyplay";
   public static final String SYNC             = "sync";
   public static final String SYNC_PREFIX      = "sync-prefix";
+  public static final String LAST_TITLE       = "last-title";
 
   public static final String RECENT_FILE            = "recent-file";
   public static final String RECENT_FILE_TYPE       = "recent-file-type";
@@ -65,6 +66,7 @@ public class FileSpec {
   private             String easyplay = "";
   private             String sync = "";
   private             String syncPrefix = "";
+  private             String lastTitle = "";
 
   /**
    Construct a FileSpec without any data.
@@ -242,6 +244,10 @@ public class FileSpec {
     if (name.equalsIgnoreCase(SYNC_PREFIX)) {
       setSyncPrefix(data);
     }
+    else
+    if (name.equalsIgnoreCase(LAST_TITLE)) {
+      setLastTitle(data);
+    }
   }
   
   public String getFileInfo() {
@@ -257,6 +263,7 @@ public class FileSpec {
     addAttribute(str, EASYPLAY, getEasyPlay());
     addAttribute(str, SYNC, getSyncAsString());
     addAttribute(str, SYNC_PREFIX, getSyncPrefix());
+    addAttribute(str, LAST_TITLE, getLastTitle());
     return str.toString();
   }
   
@@ -282,6 +289,7 @@ public class FileSpec {
     setEasyPlay(file2.getEasyPlay());
     setSyncPrefix(file2.getSyncPrefix());
     setSync(file2.getSync());
+    setLastTitle(file2.getLastTitle());
   }
   
   public void setFile (File file) {
@@ -654,6 +662,18 @@ public class FileSpec {
   
   public String getSyncPrefix() {
     return syncPrefix;
+  }
+  
+  public void setLastTitle(String lastTitle) {
+    this.lastTitle = lastTitle;
+  }
+  
+  public boolean hasLastTitle() {
+    return (lastTitle != null && lastTitle.length() > 0);
+  }
+  
+  public String getLastTitle() {
+    return lastTitle;
   }
   
   public String toString() {
