@@ -268,7 +268,7 @@ public class FileSpec {
   }
   
   private void addAttribute (StringBuilder str, String name, String data) {
-    if (data.length() > 0) {
+    if (data != null && data.length() > 0) {
       str.append(name);
       str.append(EQUALS);
       str.append(data);
