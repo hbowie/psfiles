@@ -57,12 +57,12 @@ public class FilePrefs
   public static final String NOW                          = "now";
   public static final int    NOW_INDEX                    = 1;
   
+  public static final DateFormat  BACKUP_DATE_FORMATTER 
+      = new SimpleDateFormat ("yyyy-MM-dd-HH-mm");
+  
   private             int    purgeInaccessiblePref        = NEVER_INDEX;
   
   private             long   daysBetweenBackups           = 7;
-  
-  private DateFormat  backupDateFormatter 
-      = new SimpleDateFormat ("yyyy-MM-dd-HH-mm");
   
   private             boolean recentFilesMaxUpdateInProgress = false;
   
@@ -560,8 +560,14 @@ public class FilePrefs
     return backupFileName.toString();
   }
   
-  public String getBackupDate() {
-    return backupDateFormatter.format (new Date());
+  /**
+   Return the current date and time formatted in a way that can be 
+   easily appended to a file or folder name. 
+  
+   @return Current date and time. 
+  */
+  public static String getBackupDate() {
+    return BACKUP_DATE_FORMATTER.format (new Date());
   }
   
   public void saveLastBackupDate(
