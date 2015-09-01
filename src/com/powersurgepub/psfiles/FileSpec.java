@@ -37,6 +37,7 @@ public class FileSpec {
   public static final String LAST_ACCESS      = "last-access";
   public static final String LAST_BACKUP      = "last-backup";
   public static final String BACKUP_FOLDER    = "backup-folder";
+  public static final String ARCHIVE_FOLDER   = "archive-folder";
   public static final String TEMPLATES_FOLDER = "templates-folder";
   public static final String SCRIPTS_FOLDER   = "scripts-folder";
   public static final String EASYPLAY         = "easyplay";
@@ -61,6 +62,7 @@ public class FileSpec {
   private             Date   lastAccessDate   = new Date();
   private             Date   lastBackupDate   = new Date();
   private             String backupFolder = "";
+  private             String archiveFolder = "";
   private             String templatesFolder = "";
   private             String scriptsFolder = "";
   private             String easyplay = "";
@@ -229,6 +231,10 @@ public class FileSpec {
       setTemplatesFolder (data);
     }
     else
+    if (name.equalsIgnoreCase(ARCHIVE_FOLDER)) {
+      setArchiveFolder (data);
+    }
+    else
     if (name.equalsIgnoreCase(SCRIPTS_FOLDER)) {
       setScriptsFolder (data);
     }
@@ -258,6 +264,7 @@ public class FileSpec {
     addAttribute(str, LAST_ACCESS, getLastAccessDateAsString());
     addAttribute(str, LAST_BACKUP, getLastBackupDateAsString());
     addAttribute(str, BACKUP_FOLDER, getBackupFolder());
+    addAttribute(str, ARCHIVE_FOLDER, getArchiveFolder());
     addAttribute(str, TEMPLATES_FOLDER, getTemplatesFolder());
     addAttribute(str, SCRIPTS_FOLDER, getScriptsFolder());
     addAttribute(str, EASYPLAY, getEasyPlay());
@@ -284,6 +291,7 @@ public class FileSpec {
   public void merge(FileSpec file2) {
     setLastBackupDate(file2.getLastBackupDate());
     setBackupFolder(file2.getBackupFolder());
+    setArchiveFolder(file2.getArchiveFolder());
     setScriptsFolder(file2.getScriptsFolder());
     setTemplatesFolder(file2.getTemplatesFolder());
     setEasyPlay(file2.getEasyPlay());
@@ -585,6 +593,25 @@ public class FileSpec {
   
   public String getBackupFolder () {
     return backupFolder;
+  }
+  
+  public void setArchiveFolder (File archiveFolder) {
+    if (archiveFolder.isFile()) {
+      archiveFolder = archiveFolder.getParentFile();
+    }
+    try {
+      this.archiveFolder = archiveFolder.getCanonicalPath();
+    } catch (IOException e) {
+      this.archiveFolder = archiveFolder.getAbsolutePath();
+    }
+  }
+  
+  public void setArchiveFolder (String archiveFolder) {
+    this.archiveFolder = archiveFolder;
+  }
+  
+  public String getArchiveFolder() {
+    return archiveFolder;
   }
   
   public void setTemplatesFolder (File templatesFolder) {
