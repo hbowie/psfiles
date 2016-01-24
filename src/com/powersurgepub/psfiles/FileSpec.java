@@ -40,6 +40,7 @@ public class FileSpec {
   public static final String ARCHIVE_FOLDER   = "archive-folder";
   public static final String TEMPLATES_FOLDER = "templates-folder";
   public static final String SCRIPTS_FOLDER   = "scripts-folder";
+  public static final String HTML_FOLDER      = "html-folder";
   public static final String EASYPLAY         = "easyplay";
   public static final String SYNC             = "sync";
   public static final String SYNC_PREFIX      = "sync-prefix";
@@ -65,6 +66,7 @@ public class FileSpec {
   private             String archiveFolder = "";
   private             String templatesFolder = "";
   private             String scriptsFolder = "";
+  private             String htmlFolder = "";
   private             String easyplay = "";
   private             String sync = "";
   private             String syncPrefix = "";
@@ -239,6 +241,10 @@ public class FileSpec {
       setScriptsFolder (data);
     }
     else
+    if (name.equalsIgnoreCase(HTML_FOLDER)) {
+      setHTMLFolder (data);
+    }
+    else
     if (name.equalsIgnoreCase(EASYPLAY)) {
       setEasyPlay (data);
     }
@@ -267,6 +273,7 @@ public class FileSpec {
     addAttribute(str, ARCHIVE_FOLDER, getArchiveFolder());
     addAttribute(str, TEMPLATES_FOLDER, getTemplatesFolder());
     addAttribute(str, SCRIPTS_FOLDER, getScriptsFolder());
+    addAttribute(str, HTML_FOLDER, getHTMLFolder());
     addAttribute(str, EASYPLAY, getEasyPlay());
     addAttribute(str, SYNC, getSyncAsString());
     addAttribute(str, SYNC_PREFIX, getSyncPrefix());
@@ -293,6 +300,7 @@ public class FileSpec {
     setBackupFolder(file2.getBackupFolder());
     setArchiveFolder(file2.getArchiveFolder());
     setScriptsFolder(file2.getScriptsFolder());
+    setHTMLFolder(file2.getHTMLFolder());
     setTemplatesFolder(file2.getTemplatesFolder());
     setEasyPlay(file2.getEasyPlay());
     setSyncPrefix(file2.getSyncPrefix());
@@ -644,12 +652,31 @@ public class FileSpec {
     }
   }
   
+  public void setHTMLFolder (File htmlFolder) {
+    if (htmlFolder.isFile()) {
+      htmlFolder = htmlFolder.getParentFile();
+    }
+    try {
+      this.htmlFolder = htmlFolder.getCanonicalPath();
+    } catch (java.io.IOException e) {
+      this.htmlFolder = htmlFolder.getAbsolutePath();
+    }
+  }
+  
   public void setScriptsFolder (String scriptsFolder) {
     this.scriptsFolder = scriptsFolder;
   }
   
+  public void setHTMLFolder (String htmlFolder) {
+    this.htmlFolder = htmlFolder;
+  }
+  
   public String getScriptsFolder () {
     return scriptsFolder;
+  }
+  
+  public String getHTMLFolder () {
+    return htmlFolder;
   }
   
   public void setEasyPlay (String easyplay) {
