@@ -1,5 +1,5 @@
 /*
- * Copyright 1999 - 2013 Herb Bowie
+ * Copyright 1999 - 2016 Herb Bowie
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,6 +38,8 @@ public class FilePrefs
   public static final String LAST_BACKUP_DATE             = "last-backup-date";
   public static final String NO_DATE                      = "no-date";
   
+  public static final String BACKUPS_TO_KEEP              = "backups-to-keep";
+  
   public static final String RECENT_FILES_MAX             = "recent-files-max";
   
   public static final String LAUNCH_AT_STARTUP            = "launch-at-startup";
@@ -65,6 +67,7 @@ public class FilePrefs
   private             long   daysBetweenBackups           = 7;
   
   private             boolean recentFilesMaxUpdateInProgress = false;
+  private             boolean backupsToKeepUpdateInProgress  = false;
   
   private SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
   
@@ -131,6 +134,12 @@ public class FilePrefs
     } else {
       occasionalBackupsButton.setSelected(true);
     }
+    
+    // Load number of backups to keep
+    int backupsToKeep = UserPrefs.getShared().getPrefAsInt 
+        (BACKUPS_TO_KEEP, 0);
+    backupsToKeepTextField.setText(String.valueOf(backupsToKeep));
+    backupsToKeepSlider.setValue(backupsToKeep);
     
     // Load number of recent files
     int recentMax = UserPrefs.getShared().getPrefAsInt
@@ -276,6 +285,40 @@ public class FilePrefs
   }
   
   /**
+   Set everything to the given value, if they're not already equal,
+   and if the input is in an acceptable range. 
+  
+   @param recentFilesMax The new value to be used. 
+  
+   @return The resulting value after the update (if any). 
+  */
+  private void setBackupsToKeep (int backupsToKeep) {
+    if (backupsToKeep >= 0
+        && backupsToKeep <= backupsToKeepSlider.getMaximum()) {
+      if (backupsToKeep != getBackupsToKeepFromText()) {
+        backupsToKeepTextField.setText(String.valueOf(backupsToKeep));
+      }
+      if (backupsToKeep != backupsToKeepSlider.getValue()) {
+        backupsToKeepSlider.setValue(backupsToKeep);
+      }
+    }
+  }
+  
+  /**
+   Return an integer value extracted from the text field.
+  
+   @return The equivalent integer, or -1 if the text field cannot be 
+           parsed into an integer. 
+  */
+  private int getBackupsToKeepFromText() {
+    try {
+      return (Integer.parseInt(backupsToKeepTextField.getText()));
+    } catch (NumberFormatException e) {
+      return -1;
+    }
+  }
+  
+  /**
    Return the user's preferred file to launch automatically at startup.
   
    @return The complete path to the file.  
@@ -374,6 +417,11 @@ public class FilePrefs
     } else {
       UserPrefs.getShared().setPref(BACKUP_FREQUENCY, OCCASIONAL_BACKUPS);
     }
+    
+    // Save backups to keep
+    UserPrefs.getShared().setPref
+        (BACKUPS_TO_KEEP, backupsToKeepSlider.getValue());
+    
     // Save recent files max
     UserPrefs.getShared().setPref
         (RECENT_FILES_MAX, recentFilesMaxSlider.getValue());
@@ -561,6 +609,56 @@ public class FilePrefs
   }
   
   /**
+   Remove older backup files or folders. 
+  
+   @param backupFolder The folder containing all the backups.
+   @param fileNameWithoutDate The file name, without any date. 
+  
+   @return The number of backups pruned. 
+  */
+  public int pruneBackups(File backupFolder, String fileNameWithoutDate) {
+    int pruned = 0;
+    int backupsToKeep = backupsToKeepSlider.getValue();
+    if (backupsToKeep > 0) {
+      ArrayList<String> backups = new ArrayList<String>();
+      String[] dirEntries = backupFolder.list();
+      for (int i = 0; i < dirEntries.length; i++) {
+        String dirEntryName = dirEntries[i];
+        if (dirEntryName.startsWith(fileNameWithoutDate)) {
+          boolean added = false;
+          int j = 0;
+          while ((! added) && (j < backups.size())) {
+            if (dirEntryName.compareTo(backups.get(j)) > 0) {
+              backups.add(j, dirEntryName);
+              added = true;
+            } else {
+              j++;
+            }
+          } // end while looking for insertion point
+          if (! added) {
+            backups.add(dirEntryName);
+          }
+        } // end if file/folder name matches prefix
+      } // end of directory entries
+      while (backups.size() > backupsToKeep) {
+        String toDelete = backups.get(backups.size() - 1);
+        File toDeleteFile = new File (backupFolder, toDelete);
+        if (toDeleteFile.isDirectory()) {
+          FileUtils.deleteFolderContents(toDeleteFile);
+        }
+        toDeleteFile.delete(); 
+        // System.out.println("FilePrefs.pruneBackups deleting " + toDeleteFile.toString());
+        Logger.getShared().recordEvent(LogEvent.NORMAL, 
+            "Pruning older backup: " + toDeleteFile.toString(), 
+            false);
+        pruned++;
+        backups.remove(backups.size() - 1);
+      }
+    } // if we have a backups to keep number
+    return pruned;
+  }
+  
+  /**
    Return the current date and time formatted in a way that can be 
    easily appended to a file or folder name. 
   
@@ -607,6 +705,29 @@ public class FilePrefs
       recentFiles.setRecentFilesMax(recentFilesMax);
     }
   }
+  
+  private void updateBackupsToKeepTextField() {
+    if (! backupsToKeepUpdateInProgress) {
+      backupsToKeepUpdateInProgress = true;
+      msgToUser.setText(" ");    
+      int backupsToKeepText = getBackupsToKeepFromText();
+      if (backupsToKeepText >= 0) {
+        if (backupsToKeepText >= 1
+            && backupsToKeepText <= backupsToKeepSlider.getMaximum()) {
+          setBackupsToKeep(backupsToKeepText);
+        } else {
+          backupsToKeepTextField.setText
+              (String.valueOf(backupsToKeepSlider.getValue()));
+          msgToUser.setText("Number of Backups to Keep cannot be outside of slider range");
+        }
+      } else {
+        backupsToKeepTextField.setText
+            (String.valueOf(backupsToKeepSlider.getValue()));
+        msgToUser.setText("Number of Backups to Keep smust be numeric");
+      }
+      backupsToKeepUpdateInProgress = false;
+    }
+  }
 
   /** This method is called from within the constructor to
    * initialize the form.
@@ -624,15 +745,18 @@ public class FilePrefs
     manualBackupsButton = new javax.swing.JRadioButton();
     occasionalBackupsButton = new javax.swing.JRadioButton();
     automaticBackupsButton = new javax.swing.JRadioButton();
-    recentFilesMaxLabel = new javax.swing.JLabel();
-    recentFilesMaxTextField = new javax.swing.JTextField();
-    recentFilesMaxSlider = new javax.swing.JSlider();
+    backupsToKeepLabel = new javax.swing.JLabel();
+    backupsToKeepTextField = new javax.swing.JTextField();
+    backupsToKeepSlider = new javax.swing.JSlider();
     startupLabel = new javax.swing.JLabel();
     startupComboBox = new javax.swing.JComboBox();
     purgeWhenLabel = new javax.swing.JLabel();
     purgeWhenComboBox = new javax.swing.JComboBox();
     bottomSpacer = new javax.swing.JLabel();
     msgToUser = new javax.swing.JLabel();
+    recentFilesMaxLabel = new javax.swing.JLabel();
+    recentFilesMaxTextField = new javax.swing.JTextField();
+    recentFilesMaxSlider = new javax.swing.JSlider();
 
     setLayout(new java.awt.GridBagLayout());
 
@@ -704,28 +828,28 @@ public class FilePrefs
     gridBagConstraints.insets = new java.awt.Insets(4, 4, 4, 4);
     add(automaticBackupsButton, gridBagConstraints);
 
-    recentFilesMaxLabel.setText("Number of Recent Files:");
+    backupsToKeepLabel.setText("Backups to Keep:");
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 0;
     gridBagConstraints.gridy = 4;
     gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
     gridBagConstraints.weightx = 0.5;
     gridBagConstraints.insets = new java.awt.Insets(4, 4, 4, 4);
-    add(recentFilesMaxLabel, gridBagConstraints);
+    add(backupsToKeepLabel, gridBagConstraints);
 
-    recentFilesMaxTextField.setColumns(4);
-    recentFilesMaxTextField.setHorizontalAlignment(javax.swing.JTextField.RIGHT);
-    recentFilesMaxTextField.setText("5");
-    recentFilesMaxTextField.setToolTipText("The maximum number of recent files to be retained");
-    recentFilesMaxTextField.setMinimumSize(new java.awt.Dimension(62, 28));
-    recentFilesMaxTextField.addActionListener(new java.awt.event.ActionListener() {
+    backupsToKeepTextField.setColumns(4);
+    backupsToKeepTextField.setHorizontalAlignment(javax.swing.JTextField.RIGHT);
+    backupsToKeepTextField.setText("5");
+    backupsToKeepTextField.setToolTipText("The number of backups to be retained");
+    backupsToKeepTextField.setMinimumSize(new java.awt.Dimension(62, 28));
+    backupsToKeepTextField.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed(java.awt.event.ActionEvent evt) {
-        recentFilesMaxTextFieldActionPerformed(evt);
+        backupsToKeepTextFieldActionPerformed(evt);
       }
     });
-    recentFilesMaxTextField.addFocusListener(new java.awt.event.FocusAdapter() {
+    backupsToKeepTextField.addFocusListener(new java.awt.event.FocusAdapter() {
       public void focusLost(java.awt.event.FocusEvent evt) {
-        recentFilesMaxTextFieldFocusLost(evt);
+        backupsToKeepTextFieldFocusLost(evt);
       }
     });
     gridBagConstraints = new java.awt.GridBagConstraints();
@@ -733,18 +857,18 @@ public class FilePrefs
     gridBagConstraints.gridy = 4;
     gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
     gridBagConstraints.insets = new java.awt.Insets(4, 4, 4, 4);
-    add(recentFilesMaxTextField, gridBagConstraints);
+    add(backupsToKeepTextField, gridBagConstraints);
 
-    recentFilesMaxSlider.setMajorTickSpacing(5);
-    recentFilesMaxSlider.setMaximum(25);
-    recentFilesMaxSlider.setMinorTickSpacing(1);
-    recentFilesMaxSlider.setPaintTicks(true);
-    recentFilesMaxSlider.setValue(5);
-    recentFilesMaxSlider.setFocusable(false);
-    recentFilesMaxSlider.setMinimumSize(new java.awt.Dimension(100, 38));
-    recentFilesMaxSlider.addChangeListener(new javax.swing.event.ChangeListener() {
+    backupsToKeepSlider.setMajorTickSpacing(5);
+    backupsToKeepSlider.setMaximum(25);
+    backupsToKeepSlider.setMinorTickSpacing(1);
+    backupsToKeepSlider.setPaintTicks(true);
+    backupsToKeepSlider.setValue(5);
+    backupsToKeepSlider.setFocusable(false);
+    backupsToKeepSlider.setMinimumSize(new java.awt.Dimension(100, 38));
+    backupsToKeepSlider.addChangeListener(new javax.swing.event.ChangeListener() {
       public void stateChanged(javax.swing.event.ChangeEvent evt) {
-        recentFilesMaxSliderStateChanged(evt);
+        backupsToKeepSliderStateChanged(evt);
       }
     });
     gridBagConstraints = new java.awt.GridBagConstraints();
@@ -753,7 +877,7 @@ public class FilePrefs
     gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
     gridBagConstraints.weightx = 1.0;
     gridBagConstraints.insets = new java.awt.Insets(4, 4, 4, 4);
-    add(recentFilesMaxSlider, gridBagConstraints);
+    add(backupsToKeepSlider, gridBagConstraints);
 
     startupLabel.setText("At startup, open:");
     gridBagConstraints = new java.awt.GridBagConstraints();
@@ -815,6 +939,57 @@ public class FilePrefs
     gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
     gridBagConstraints.insets = new java.awt.Insets(4, 4, 4, 4);
     add(msgToUser, gridBagConstraints);
+
+    recentFilesMaxLabel.setText("Number of Recent Files:");
+    gridBagConstraints = new java.awt.GridBagConstraints();
+    gridBagConstraints.gridx = 0;
+    gridBagConstraints.gridy = 7;
+    gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
+    gridBagConstraints.weightx = 0.5;
+    gridBagConstraints.insets = new java.awt.Insets(4, 4, 4, 4);
+    add(recentFilesMaxLabel, gridBagConstraints);
+
+    recentFilesMaxTextField.setColumns(4);
+    recentFilesMaxTextField.setHorizontalAlignment(javax.swing.JTextField.RIGHT);
+    recentFilesMaxTextField.setText("5");
+    recentFilesMaxTextField.setToolTipText("The maximum number of recent files to be retained");
+    recentFilesMaxTextField.setMinimumSize(new java.awt.Dimension(62, 28));
+    recentFilesMaxTextField.addActionListener(new java.awt.event.ActionListener() {
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
+        recentFilesMaxTextFieldActionPerformed(evt);
+      }
+    });
+    recentFilesMaxTextField.addFocusListener(new java.awt.event.FocusAdapter() {
+      public void focusLost(java.awt.event.FocusEvent evt) {
+        recentFilesMaxTextFieldFocusLost(evt);
+      }
+    });
+    gridBagConstraints = new java.awt.GridBagConstraints();
+    gridBagConstraints.gridx = 1;
+    gridBagConstraints.gridy = 7;
+    gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
+    gridBagConstraints.insets = new java.awt.Insets(4, 4, 4, 4);
+    add(recentFilesMaxTextField, gridBagConstraints);
+
+    recentFilesMaxSlider.setMajorTickSpacing(5);
+    recentFilesMaxSlider.setMaximum(25);
+    recentFilesMaxSlider.setMinorTickSpacing(1);
+    recentFilesMaxSlider.setPaintTicks(true);
+    recentFilesMaxSlider.setValue(5);
+    recentFilesMaxSlider.setFocusable(false);
+    recentFilesMaxSlider.setMinimumSize(new java.awt.Dimension(100, 38));
+    recentFilesMaxSlider.addChangeListener(new javax.swing.event.ChangeListener() {
+      public void stateChanged(javax.swing.event.ChangeEvent evt) {
+        recentFilesMaxSliderStateChanged(evt);
+      }
+    });
+    gridBagConstraints = new java.awt.GridBagConstraints();
+    gridBagConstraints.gridx = 2;
+    gridBagConstraints.gridy = 7;
+    gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+    gridBagConstraints.weightx = 1.0;
+    gridBagConstraints.insets = new java.awt.Insets(4, 4, 4, 4);
+    add(recentFilesMaxSlider, gridBagConstraints);
   }// </editor-fold>//GEN-END:initComponents
 
 private void manualBackupsButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_manualBackupsButtonActionPerformed
@@ -868,9 +1043,33 @@ private void automaticBackupsButtonActionPerformed(java.awt.event.ActionEvent ev
     }
   }//GEN-LAST:event_purgeWhenComboBoxActionPerformed
 
+  private void backupsToKeepTextFieldActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_backupsToKeepTextFieldActionPerformed
+    updateBackupsToKeepTextField();
+  }//GEN-LAST:event_backupsToKeepTextFieldActionPerformed
+
+  private void backupsToKeepTextFieldFocusLost(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_backupsToKeepTextFieldFocusLost
+    updateBackupsToKeepTextField();
+  }//GEN-LAST:event_backupsToKeepTextFieldFocusLost
+
+  private void backupsToKeepSliderStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_backupsToKeepSliderStateChanged
+    if (! backupsToKeepUpdateInProgress) {
+      backupsToKeepUpdateInProgress = true;
+      msgToUser.setText(" ");
+      int backupsToKeepSliderValue = backupsToKeepSlider.getValue();
+      if (backupsToKeepSliderValue < 0) {
+        backupsToKeepSliderValue = 0;
+      }
+      backupsToKeepTextField.setText(String.valueOf(backupsToKeepSliderValue));
+      backupsToKeepUpdateInProgress = false;
+    }
+  }//GEN-LAST:event_backupsToKeepSliderStateChanged
+
   // Variables declaration - do not modify//GEN-BEGIN:variables
   private javax.swing.JRadioButton automaticBackupsButton;
   private javax.swing.JLabel backupFrequencyLabel;
+  private javax.swing.JLabel backupsToKeepLabel;
+  private javax.swing.JSlider backupsToKeepSlider;
+  private javax.swing.JTextField backupsToKeepTextField;
   private javax.swing.JLabel bottomSpacer;
   private javax.swing.JLabel filePrefsForLabel;
   private javax.swing.ButtonGroup frequencyButtonGroup;
