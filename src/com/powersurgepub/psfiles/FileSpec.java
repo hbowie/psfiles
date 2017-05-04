@@ -45,6 +45,7 @@ public class FileSpec {
   public static final String SYNC             = "sync";
   public static final String SYNC_PREFIX      = "sync-prefix";
   public static final String LAST_TITLE       = "last-title";
+  public static final String NOTE_SORT_PARM   = "note-sort-parm";
 
   public static final String RECENT_FILE            = "recent-file";
   public static final String RECENT_FILE_TYPE       = "recent-file-type";
@@ -71,6 +72,7 @@ public class FileSpec {
   private             String sync = "";
   private             String syncPrefix = "";
   private             String lastTitle = "";
+  private             int    noteSortParm = 0;
 
   /**
    Construct a FileSpec without any data.
@@ -260,6 +262,10 @@ public class FileSpec {
     if (name.equalsIgnoreCase(LAST_TITLE)) {
       setLastTitle(data);
     }
+    else
+    if (name.equalsIgnoreCase(NOTE_SORT_PARM)) {
+      setNoteSortParm(data);
+    }
   }
   
   public String getFileInfo() {
@@ -278,6 +284,7 @@ public class FileSpec {
     addAttribute(str, SYNC, getSyncAsString());
     addAttribute(str, SYNC_PREFIX, getSyncPrefix());
     addAttribute(str, LAST_TITLE, getLastTitle());
+    addAttribute(str, NOTE_SORT_PARM, getNoteSortParmAsString());
     return str.toString();
   }
   
@@ -306,6 +313,7 @@ public class FileSpec {
     setSyncPrefix(file2.getSyncPrefix());
     setSync(file2.getSync());
     setLastTitle(file2.getLastTitle());
+    setNoteSortParm(file2.getNoteSortParm());
   }
   
   public void setFile (File file) {
@@ -728,6 +736,31 @@ public class FileSpec {
   
   public String getLastTitle() {
     return lastTitle;
+  }
+  
+  public void setNoteSortParm(int noteSortParm) {
+    this.noteSortParm = noteSortParm;
+  }
+  
+  public void setNoteSortParm(String noteSortParm) {
+    try {
+      int parm = Integer.parseInt(noteSortParm);
+      this.noteSortParm = parm;
+    } catch (NumberFormatException e) {
+      // Leave it alone if bad number
+    }
+  }
+  
+  public boolean hasNoteSortParm() {
+    return true;
+  }
+  
+  public int getNoteSortParm() {
+    return noteSortParm;
+  }
+  
+  public String getNoteSortParmAsString() {
+    return Integer.toString(noteSortParm);
   }
   
   public String toString() {
