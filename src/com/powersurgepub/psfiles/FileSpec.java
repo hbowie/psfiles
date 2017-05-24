@@ -1,5 +1,5 @@
 /*
- * Copyright 1999 - 2015 Herb Bowie
+ * Copyright 1999 - 2017 Herb Bowie
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,6 +34,7 @@ public class FileSpec {
   public static final String PATH             = "path";
   public static final String TYPE             = "type";
   public static final String FORMAT           = "format";
+  public static final String COLLECTION_TITLE = "collection-title";
   public static final String LAST_ACCESS      = "last-access";
   public static final String LAST_BACKUP      = "last-backup";
   public static final String BACKUP_FOLDER    = "backup-folder";
@@ -61,6 +62,7 @@ public class FileSpec {
   private             String type   = "";
   private             String path   = "";
   private             String format = "";
+  private             String collectionTitle = "";
   private             Date   lastAccessDate   = new Date();
   private             Date   lastBackupDate   = new Date();
   private             String backupFolder = "";
@@ -142,7 +144,12 @@ public class FileSpec {
             + keySuffix, ""));
         
         // Load the generic backup folder, if one is available
-        setBackupFolder (prefs.getPref (BACKUP_FOLDER, ""));
+        setBackupFolder (prefs.getPref (prefsQualifier + BACKUP_FOLDER + "-"
+            + keySuffix, ""));
+        
+        // Load the Collection Title, if one is available
+        setCollectionTitle (prefs.getPref(prefsQualifier + COLLECTION_TITLE + "-"
+            + keySuffix, ""));
 
       }
     }
@@ -219,6 +226,10 @@ public class FileSpec {
       setFormat (data);
     }
     else
+    if (name.equalsIgnoreCase(COLLECTION_TITLE)) {
+      setCollectionTitle (data);
+    }
+    else
     if (name.equalsIgnoreCase(LAST_ACCESS)) {
       setLastAccessDate (data);
     }
@@ -273,6 +284,7 @@ public class FileSpec {
     addAttribute(str, PATH, path);
     addAttribute(str, TYPE, type);
     addAttribute(str, FORMAT, format);
+    addAttribute(str, COLLECTION_TITLE, getCollectionTitle());
     addAttribute(str, LAST_ACCESS, getLastAccessDateAsString());
     addAttribute(str, LAST_BACKUP, getLastBackupDateAsString());
     addAttribute(str, BACKUP_FOLDER, getBackupFolder());
@@ -314,6 +326,7 @@ public class FileSpec {
     setSync(file2.getSync());
     setLastTitle(file2.getLastTitle());
     setNoteSortParm(file2.getNoteSortParm());
+    setCollectionTitle(file2.getCollectionTitle());
   }
   
   public void setFile (File file) {
@@ -324,10 +337,12 @@ public class FileSpec {
     } catch (java.io.IOException e) {
       
     }
+    setCollectionTitleFromPath();
   }
   
   public void setPath(String path) {
     this.path = path;
+    setCollectionTitleFromPath();
     file = new File(path);
   }
   
@@ -410,6 +425,42 @@ public class FileSpec {
   public String getPath () {
     return path;
   }
+  
+  private void setCollectionTitleFromPath() {
+    if (collectionTitle == null || collectionTitle.length() == 0) {
+      StringBuilder work = new StringBuilder();
+      int i = path.length();
+      int end = path.length();
+      char c = ' ';
+      boolean done = false;
+      while (i > 0 && (! done)) {
+        i--;
+        c = path.charAt(i);
+        if (c == '%') {
+          if (((i + 2) < path.length())
+              && ((i + 2) < end)
+              && (path.substring(i, i + 3).equals("%20"))) {
+            work.insert(0, path.substring(i + 3, end));
+            end = i;
+          }
+        }
+        else
+        if (c == '/') {
+          if (work.length() == 0
+              || (work.length() + (end - i) < BRIEF_DISPLAY_NAME_MAX_LENGTH)) {
+            if (work.length() > 0) {
+              work.insert(0, " ");
+            }
+            work.insert(0, path.substring(i + 1, end));
+            end = i;
+          } else {
+            done = true;
+          }
+        } // end if we found a slash
+      } // end while scanning path from the back
+      collectionTitle = work.toString();
+    } // end if we don't yet have a collection title
+  } // end method 
 
   /**
    Return a path suitable for display. Currently replaces occurrences of "%20"
@@ -761,6 +812,20 @@ public class FileSpec {
   
   public String getNoteSortParmAsString() {
     return Integer.toString(noteSortParm);
+  }
+  
+  public void setCollectionTitle(String collectionTitle) {
+    if (collectionTitle != null && collectionTitle.length() > 0) {
+      this.collectionTitle = collectionTitle;
+    }
+  }
+  
+  public boolean hasCollectionTitle() {
+    return (collectionTitle != null && collectionTitle.length() > 0);
+  }
+  
+  public String getCollectionTitle() {
+    return collectionTitle;
   }
   
   public String toString() {
