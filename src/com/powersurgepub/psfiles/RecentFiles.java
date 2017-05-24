@@ -1,5 +1,5 @@
 /*
- * Copyright 1999 - 2013 Herb Bowie
+ * Copyright 1999 - 2017 Herb Bowie
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package com.powersurgepub.psfiles;
 
   import com.powersurgepub.psutils.*;
   import com.powersurgepub.xos2.*;
+  import java.awt.*;
   import java.io.*;
   import java.util.*;
   import javax.swing.*;
@@ -69,7 +70,7 @@ package com.powersurgepub.psfiles;
  @author Herb Bowie
  */
 public class RecentFiles {
-
+  
   private         String              prefsQualifier          = "";
   
   private         int                 recentFilesMax          
@@ -92,7 +93,7 @@ public class RecentFiles {
    Construct a RecentFiles instance without any prefs qualifier.
    */
   public RecentFiles () {
-
+    
   }
 
   /**
@@ -102,7 +103,7 @@ public class RecentFiles {
                          different sets of recent files used for different
                          purposes by the same program.
    */
-  public RecentFiles (String prefsQualifier) {
+  public RecentFiles (String prefsQualifier) { 
     this.prefsQualifier = prefsQualifier;
     if (prefsQualifier.length() > 0
         && prefsQualifier.charAt(prefsQualifier.length() - 1) != '-') {
@@ -124,41 +125,38 @@ public class RecentFiles {
   public void setFilePrefs (FilePrefs filePrefs) {
     this.filePrefs = filePrefs;
   }
-
+  
   /**
    Load the recent files from the user's preferences.
    */
   public void loadFromPrefs () {
     
+    int j = 0;
     for (int i = 0; i < recentFilesMax; i++) {
       FileSpec recentFile = new FileSpec();
       recentFile.loadFromRecentPrefs(prefsQualifier, i);
       if (recentFile.hasPath()) {
-        files.add(recentFile);
-
-        if (recentFilesMenu != null) {
-          recentFilesMenu.insert (createMenuItem(recentFile), i);
+        int k = 0;
+        boolean found = false;
+        while (k < files.size() && (! found)) {
+          if (recentFile.getPath().equals(get(k).getPath())) {
+            found = true;
+          } else {
+            k++;
+          }
         }
-        
-        if (filePrefs != null) {
-          filePrefs.addRecentFileAtEnd(recentFile);
-        }
-      }
-    }
-  }
+        if (! found) {
+          files.add(recentFile);
   
-  public void displayRecentFiles() {
-    System.out.println ("RecentFiles.displayRecentFiles");
-    System.out.println("  files");
-    for (int i = 0; i < files.size(); i++) {
-      System.out.println("    " + String.valueOf(i) + ": " + get(i).getPath());
-    }
-    
-    if (recentFilesMenu != null) {
-      System.out.println ("  Recent Files menu");
-      for (int i = 0; i < recentFilesMenu.getMenuComponentCount(); i++) {
-        System.out.println("  " + String.valueOf(i) + ": " + 
-            recentFilesMenu.getMenuComponent(i).toString());
+          if (recentFilesMenu != null) {
+            recentFilesMenu.insert (createMenuItem(recentFile), j);
+          }
+          j++;
+
+          if (filePrefs != null) {
+            filePrefs.addRecentFileAtEnd(recentFile);
+          }
+        }
       }
     }
   }
@@ -259,16 +257,20 @@ public class RecentFiles {
    */
   public FileSpec addRecentFile (FileSpec recentFile) {
 
+    // Let's add the most recent file opened to the top of the list
     files.add (0, recentFile);
+    JMenuItem recentItem = createMenuItem(recentFile);
     if (recentFilesMenu != null) {
-      recentFilesMenu.insert (createMenuItem(recentFile), 0);
+      recentFilesMenu.insert (recentItem, 0);
     }
     if (filePrefs != null) {
       filePrefs.addRecentFileAtTop(recentFile);
     }
+    
     for (int i = 1; i < files.size(); i++) {
       if (get(i).getPath().equals(recentFile.getPath())) {
         recentFile.merge(get(i));
+        recentItem.setText(recentFile.getCollectionTitle());
         removeFile (i);
         i--;
       }
@@ -314,6 +316,19 @@ public class RecentFiles {
     return get(0);
   } // end method addRecentFile
   
+  public void removeRecentFile(String oldTitle) {
+    boolean found = false;
+    int i = 0;
+    while (i < files.size() && (! found)) {
+      FileSpec fs = get(i);
+      if (fs != null && fs.getCollectionTitle().equalsIgnoreCase(oldTitle)) {
+        found = true;
+        removeFile(i);
+      }
+      i++;
+    }
+  }
+  
   private void removeFile (int i) {
    
     files.remove(i);
@@ -322,6 +337,80 @@ public class RecentFiles {
     }
     if (recentFilesMenu != null && i < recentFilesMenu.getItemCount()) {
       recentFilesMenu.remove(i);
+    }
+  }
+  
+  /**
+   Modify the title of a recent file spec. 
+  
+   @param oldTitle The title before the modification. 
+   @param newTitle The title after the modification. 
+  */
+  public void modRecentFile(String oldTitle, String newTitle) {
+
+    boolean found = false;
+    int i = 0;
+    while (i < files.size() && (! found)) {
+      FileSpec fs = get(i);
+      if (fs != null && fs.getCollectionTitle().equalsIgnoreCase(oldTitle)) {
+        found = true;
+        fs.setCollectionTitle(newTitle);
+      }
+      i++;
+    }
+    
+    if (recentFilesMenu != null) {
+      found = false;
+      i = 0;
+      while (i < recentFilesMenu.getMenuComponentCount() && (! found)) {
+        Component mc = recentFilesMenu.getMenuComponent(i);
+        if (mc instanceof JMenuItem) {
+          JMenuItem mi = (JMenuItem)mc;
+          if (mi.getText().equalsIgnoreCase(oldTitle)) {
+            found = true;
+            mi.setText(newTitle);
+          }
+        }
+        i++;
+      } 
+    }
+    
+    savePrefs();
+  }
+  
+  /**
+   Modify the title of a recent file spec. 
+  
+   @param file The file whose menu item we are looking for. 
+   @param newTitle The title to be applied to this menu item. 
+  */
+  public void modRecentFile(File file, String newTitle) {
+    boolean found = false;
+    int i = 0;
+    while (i < files.size() && (! found)) {
+      FileSpec fs = get(i);
+      if (fs != null && fs.getFile().equals(file)) {
+        found = true;
+        fs.setCollectionTitle(newTitle);
+      }
+      i++;
+    }
+    
+    if (recentFilesMenu != null) {
+      found = false;
+      i = 0;
+      while (i < recentFilesMenu.getMenuComponentCount() && (! found)) {
+        Component mc = recentFilesMenu.getMenuComponent(i);
+        if (mc instanceof JMenuItem) {
+          JMenuItem mi = (JMenuItem)mc;
+          File menuFile = new File(mi.getActionCommand());
+          if (menuFile != null && menuFile.equals(file)) {
+            found = true;
+            mi.setText(newTitle);
+          }
+        }
+        i++;
+      } 
     }
   }
 
@@ -405,7 +494,7 @@ public class RecentFiles {
   private JMenuItem createMenuItem (FileSpec fileSpec) {
 
     // Create the new menu item
-    JMenuItem menuItem = new JMenuItem(fileSpec.getBriefDisplayName());
+    JMenuItem menuItem = new JMenuItem(fileSpec.getCollectionTitle());
     menuItem.setActionCommand (fileSpec.getPath());
     menuItem.setToolTipText (fileSpec.getDisplayName());
     menuItem.addActionListener(new java.awt.event.ActionListener() {
@@ -441,6 +530,26 @@ public class RecentFiles {
       }
     }
   } // end method
+  
+  public FileSpec get(File file) {
+
+    boolean found = false;
+    int i = 0;
+    FileSpec spec = null;
+    while (i < files.size() && (! found)) {
+      spec = files.get(i);
+      if (file.equals(spec.getFile())) {
+        found = true;
+      } else {
+        i++;
+      }
+    }
+    if (found) {
+      return spec;
+    } else {
+      return null;
+    }
+  }
 
   /**
    Get a particular FileSpec entry, given its position in the list.
@@ -465,6 +574,22 @@ public class RecentFiles {
   */
   public int size() {
     return files.size();
+  }
+  
+  public void displayRecentFiles() {
+    System.out.println ("RecentFiles.displayRecentFiles");
+    System.out.println("  files");
+    for (int i = 0; i < files.size(); i++) {
+      System.out.println("    " + String.valueOf(i) + ": " + get(i).getPath());
+    }
+    
+    if (recentFilesMenu != null) {
+      System.out.println ("  Recent Files menu");
+      for (int i = 0; i < recentFilesMenu.getMenuComponentCount(); i++) {
+        System.out.println("  " + String.valueOf(i) + ": " + 
+            recentFilesMenu.getMenuComponent(i).toString());
+      }
+    }
   }
 
 }
