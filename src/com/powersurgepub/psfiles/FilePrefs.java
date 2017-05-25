@@ -79,8 +79,13 @@ public class FilePrefs
   private         RecentFiles       recentFiles = null;
   
   private         String            specificFileAtStartup = "";
-
-    /**
+  
+  public static final String        ESSENTIAL_PATH        = "essential-path";
+  public static final int           ESSENTIAL_COMBO_BOX_LITERALS = 1;
+  private             String        essentialPath         = "";
+  private             boolean       essentialUserSelection = true;
+  
+  /**
    Returns a single instance of FilePrefs that can be shared by many classes.
    This is the only way to obtain an instance of FilePrefs, since the
    constructor is private.
@@ -177,6 +182,11 @@ public class FilePrefs
       }
     } // end if startup value is not a literal
     
+    // Load essential path preferences
+    essentialPath = UserPrefs.getShared().getPref
+        (ESSENTIAL_PATH, "");
+    setEssentialSelection();
+    
     // Load purge inaccessible preferences
     String purgeInaccessible = UserPrefs.getShared().getPref 
         (PURGE_INACCESSIBLE_FILES, NEVER);
@@ -186,6 +196,31 @@ public class FilePrefs
       purgeWhenComboBox.setSelectedIndex(NEVER_INDEX);
     }
     purgeInaccessiblePref = purgeWhenComboBox.getSelectedIndex();
+  }
+  
+  /**
+   Set the essential combo box selection to reflect the current value of 
+   the essential file path. 
+  */
+  private void setEssentialSelection() {
+
+    essentialUserSelection = false;
+    if (essentialPath.length() == 0) {
+      essentialComboBox.setSelectedIndex(NO_FILE_INDEX);
+    } else {
+      int i = ESSENTIAL_COMBO_BOX_LITERALS;
+      boolean found = false;
+      while (i < essentialComboBox.getItemCount() && (! found)) {
+        FileSpec comboBoxFileSpec = getEssentialFileSpec (i);
+        if (essentialPath.equalsIgnoreCase(comboBoxFileSpec.getPath())) {
+          essentialComboBox.setSelectedIndex(i);
+          found = true;
+        } else {
+          i++;
+        }
+      } // while looking for a match
+    } // end if essential value is not a literal
+    essentialUserSelection = true;
   }
   
   /**
@@ -203,20 +238,37 @@ public class FilePrefs
   
   public void addRecentFileAtEnd (FileSpec recentFile) {
 
+    essentialUserSelection = false;
     startupComboBox.addItem(recentFile.getBriefDisplayName());
     if (recentFile.getPath().equalsIgnoreCase(specificFileAtStartup)) {
       startupComboBox.setSelectedIndex(startupComboBox.getItemCount() - 1);
     }
+    
+    essentialComboBox.addItem(recentFile.getBriefDisplayName());
+    if (recentFile.getPath().equalsIgnoreCase(essentialPath)) {
+      essentialComboBox.setSelectedIndex(essentialComboBox.getItemCount() - 1);
+    }
+    essentialUserSelection = true;
 
   }
   
   public void addRecentFileAtTop (FileSpec recentFile) {
 
+    essentialUserSelection = false;
     startupComboBox.insertItemAt
         (recentFile.getBriefDisplayName(), STARTUP_COMBO_BOX_LITERALS);
     if (recentFile.getPath().equalsIgnoreCase(specificFileAtStartup)) {
       startupComboBox.setSelectedIndex(STARTUP_COMBO_BOX_LITERALS);
     }
+    
+    essentialComboBox.insertItemAt
+        (recentFile.getBriefDisplayName(), ESSENTIAL_COMBO_BOX_LITERALS);
+    if (recentFile.getPath().equalsIgnoreCase(essentialPath)) {
+      essentialComboBox.setSelectedIndex(ESSENTIAL_COMBO_BOX_LITERALS);
+    } else {
+      setEssentialSelection();
+    }
+    essentialUserSelection = true;
 
   }
   
@@ -228,6 +280,16 @@ public class FilePrefs
       startupComboBox.setSelectedIndex(STARTUP_COMBO_BOX_LITERALS + 1);
     }
     
+    essentialUserSelection = false;
+    essentialComboBox.insertItemAt
+        (notSoRecentFile.getBriefDisplayName(), ESSENTIAL_COMBO_BOX_LITERALS + 1);
+    if (notSoRecentFile.getPath().equalsIgnoreCase(essentialPath)) {
+      essentialComboBox.setSelectedIndex(ESSENTIAL_COMBO_BOX_LITERALS + 1);
+    } else {
+      setEssentialSelection();
+    }
+    essentialUserSelection = true;
+    
   }
   
   public void removeRecentFile (int i) {
@@ -235,6 +297,13 @@ public class FilePrefs
     if (startupComboBox.getItemCount() > (i + STARTUP_COMBO_BOX_LITERALS)) {
       startupComboBox.removeItemAt (i + STARTUP_COMBO_BOX_LITERALS);
     }
+    
+    essentialUserSelection = false;
+    if (essentialComboBox.getItemCount() > (i + ESSENTIAL_COMBO_BOX_LITERALS)) {
+      essentialComboBox.removeItemAt (i + ESSENTIAL_COMBO_BOX_LITERALS);
+    }
+    setEssentialSelection();
+    essentialUserSelection = true;
   }
   
   /**
@@ -245,6 +314,12 @@ public class FilePrefs
     while (startupComboBox.getItemCount() > (STARTUP_COMBO_BOX_LITERALS + 1)) {
       startupComboBox.remove(STARTUP_COMBO_BOX_LITERALS + 1);
     }
+    
+    essentialUserSelection = false;
+    while (essentialComboBox.getItemCount() > (ESSENTIAL_COMBO_BOX_LITERALS + 1)) {
+      essentialComboBox.remove(ESSENTIAL_COMBO_BOX_LITERALS + 1);
+    }
+    essentialUserSelection = true;
   }
   
   /**
@@ -352,6 +427,17 @@ public class FilePrefs
     }
   }
   
+  public boolean hasEssentialFilePath() {
+    // refreshEssentialPath();
+    return (essentialPath != null && essentialPath.length() > 0);
+  }
+  
+  public String getEssentialFilePath() {
+    
+    // refreshEssentialPath();
+    return essentialPath;
+  }
+  
   /**
    Return a File Spec identifying the user's preferred file to launch
    automatically at startup.
@@ -398,6 +484,52 @@ public class FilePrefs
     }
   }
   
+  /**
+   Return a File Spec identifying the user's preferred file to launch
+   with the Essential shortcut.
+  
+   @return The File Spec identifying the essential file.  
+   */
+  public FileSpec getEssentialFileSpec () {
+    return getEssentialFileSpec (essentialComboBox.getSelectedIndex());
+  }
+  
+  /**
+   Return the file spec for the file identified by the passed index.
+  
+   @param i Index to the desired essential combo box value. 
+  
+   @return A file spec for the file implied by the passed index.  
+  */
+  public FileSpec getEssentialFileSpec (int i) {
+
+    if (essentialComboBox.getItemCount() <= ESSENTIAL_COMBO_BOX_LITERALS) {
+      return null;
+    }
+    else
+    if (i == 0) {
+      return null;
+    } else {
+      if (recentFiles != null
+          && recentFiles.size() > (i - ESSENTIAL_COMBO_BOX_LITERALS)) {
+        return recentFiles.get(i - ESSENTIAL_COMBO_BOX_LITERALS);
+      } else {
+        return null;
+      }
+    }
+  }
+  
+  /**
+   Set combo box index programmatically. 
+  
+   @param specified index
+  */
+  private void setEssentialIndex(int i) {
+    essentialUserSelection = false;
+    essentialComboBox.setSelectedIndex(i);
+    essentialUserSelection = true;
+  }
+  
   public boolean purgeRecentFilesAtStartup () {
     return (purgeWhenComboBox.getSelectedIndex() == AT_STARTUP_INDEX);
   }
@@ -438,6 +570,9 @@ public class FilePrefs
       UserPrefs.getShared().setPref
           (LAUNCH_AT_STARTUP, selectedFileSpec.getPath());
     }
+    
+    // Save Essential file prefs
+    UserPrefs.getShared().setPref(ESSENTIAL_PATH, essentialPath);
     
     // Save purge inaccessible files prefs
     if (purgeWhenComboBox.getSelectedIndex() == AT_STARTUP_INDEX) {
@@ -647,7 +782,6 @@ public class FilePrefs
           FileUtils.deleteFolderContents(toDeleteFile);
         }
         toDeleteFile.delete(); 
-        // System.out.println("FilePrefs.pruneBackups deleting " + toDeleteFile.toString());
         Logger.getShared().recordEvent(LogEvent.NORMAL, 
             "Pruning older backup: " + toDeleteFile.toString(), 
             false);
@@ -750,6 +884,8 @@ public class FilePrefs
     backupsToKeepSlider = new javax.swing.JSlider();
     startupLabel = new javax.swing.JLabel();
     startupComboBox = new javax.swing.JComboBox();
+    essentialLabel = new javax.swing.JLabel();
+    essentialComboBox = new javax.swing.JComboBox();
     purgeWhenLabel = new javax.swing.JLabel();
     purgeWhenComboBox = new javax.swing.JComboBox();
     bottomSpacer = new javax.swing.JLabel();
@@ -889,6 +1025,11 @@ public class FilePrefs
     add(startupLabel, gridBagConstraints);
 
     startupComboBox.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "Nothing", "Last File Opened" }));
+    startupComboBox.addActionListener(new java.awt.event.ActionListener() {
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
+        startupComboBoxActionPerformed(evt);
+      }
+    });
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 1;
     gridBagConstraints.gridy = 5;
@@ -897,10 +1038,33 @@ public class FilePrefs
     gridBagConstraints.insets = new java.awt.Insets(4, 4, 4, 4);
     add(startupComboBox, gridBagConstraints);
 
-    purgeWhenLabel.setText("Purge inaccessible files:");
+    essentialLabel.setText("Assign Essential Shortcut to:");
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 0;
     gridBagConstraints.gridy = 6;
+    gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
+    gridBagConstraints.weightx = 0.5;
+    gridBagConstraints.insets = new java.awt.Insets(4, 4, 4, 4);
+    add(essentialLabel, gridBagConstraints);
+
+    essentialComboBox.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "Nothing" }));
+    essentialComboBox.addActionListener(new java.awt.event.ActionListener() {
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
+        essentialComboBoxActionPerformed(evt);
+      }
+    });
+    gridBagConstraints = new java.awt.GridBagConstraints();
+    gridBagConstraints.gridx = 1;
+    gridBagConstraints.gridy = 6;
+    gridBagConstraints.gridwidth = 2;
+    gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
+    gridBagConstraints.insets = new java.awt.Insets(4, 4, 4, 4);
+    add(essentialComboBox, gridBagConstraints);
+
+    purgeWhenLabel.setText("Purge inaccessible files:");
+    gridBagConstraints = new java.awt.GridBagConstraints();
+    gridBagConstraints.gridx = 0;
+    gridBagConstraints.gridy = 7;
     gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
     gridBagConstraints.weightx = 0.5;
     gridBagConstraints.insets = new java.awt.Insets(4, 4, 4, 4);
@@ -914,7 +1078,7 @@ public class FilePrefs
     });
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 1;
-    gridBagConstraints.gridy = 6;
+    gridBagConstraints.gridy = 7;
     gridBagConstraints.gridwidth = 2;
     gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
     gridBagConstraints.insets = new java.awt.Insets(4, 4, 4, 4);
@@ -924,7 +1088,7 @@ public class FilePrefs
     bottomSpacer.setText(" ");
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 0;
-    gridBagConstraints.gridy = 7;
+    gridBagConstraints.gridy = 8;
     gridBagConstraints.gridwidth = 3;
     gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
     gridBagConstraints.insets = new java.awt.Insets(4, 4, 4, 4);
@@ -943,7 +1107,7 @@ public class FilePrefs
     recentFilesMaxLabel.setText("Number of Recent Files:");
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 0;
-    gridBagConstraints.gridy = 7;
+    gridBagConstraints.gridy = 8;
     gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
     gridBagConstraints.weightx = 0.5;
     gridBagConstraints.insets = new java.awt.Insets(4, 4, 4, 4);
@@ -966,7 +1130,7 @@ public class FilePrefs
     });
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 1;
-    gridBagConstraints.gridy = 7;
+    gridBagConstraints.gridy = 8;
     gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
     gridBagConstraints.insets = new java.awt.Insets(4, 4, 4, 4);
     add(recentFilesMaxTextField, gridBagConstraints);
@@ -985,7 +1149,7 @@ public class FilePrefs
     });
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 2;
-    gridBagConstraints.gridy = 7;
+    gridBagConstraints.gridy = 8;
     gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
     gridBagConstraints.weightx = 1.0;
     gridBagConstraints.insets = new java.awt.Insets(4, 4, 4, 4);
@@ -1064,6 +1228,25 @@ private void automaticBackupsButtonActionPerformed(java.awt.event.ActionEvent ev
     }
   }//GEN-LAST:event_backupsToKeepSliderStateChanged
 
+  private void startupComboBoxActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_startupComboBoxActionPerformed
+    // ???
+  }//GEN-LAST:event_startupComboBoxActionPerformed
+
+  private void essentialComboBoxActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_essentialComboBoxActionPerformed
+
+    int i = essentialComboBox.getSelectedIndex();
+    if (essentialUserSelection) {
+      if (i <= 0) {
+        essentialPath = "";
+      } else {
+        if (recentFiles != null
+            && recentFiles.size() > (i - ESSENTIAL_COMBO_BOX_LITERALS)) {
+          essentialPath = recentFiles.get(i - ESSENTIAL_COMBO_BOX_LITERALS).getPath();
+        } 
+      }
+    }
+  }//GEN-LAST:event_essentialComboBoxActionPerformed
+
   // Variables declaration - do not modify//GEN-BEGIN:variables
   private javax.swing.JRadioButton automaticBackupsButton;
   private javax.swing.JLabel backupFrequencyLabel;
@@ -1071,6 +1254,8 @@ private void automaticBackupsButtonActionPerformed(java.awt.event.ActionEvent ev
   private javax.swing.JSlider backupsToKeepSlider;
   private javax.swing.JTextField backupsToKeepTextField;
   private javax.swing.JLabel bottomSpacer;
+  private javax.swing.JComboBox essentialComboBox;
+  private javax.swing.JLabel essentialLabel;
   private javax.swing.JLabel filePrefsForLabel;
   private javax.swing.ButtonGroup frequencyButtonGroup;
   private javax.swing.JRadioButton manualBackupsButton;
